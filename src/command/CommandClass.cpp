@@ -34,7 +34,7 @@ void	Command::ExecCommand(int clientFd, Server *server)
 {
 	if (this->_commands.find(this->_name) != _commands.end())
 	{
-		std::cout << this->_name << std::endl;
+		// std::cout << "name = " << this->_name << std::endl;
 		(this->*this->_commands[this->_name])(server->GetUserByFd(clientFd), server);
 	}
 }
@@ -463,7 +463,7 @@ void	Command::NICK(User *user, Server *server)
 			SendOneMsg(user, ERR_NICKNAMEINUSE(_param[0]));
 			epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
 			close(user->GetFd());
-			server->RemoveUser(user);
+			// server->RemoveUser(user);
 		}
 		else
 			std::cout << "NICK OK" << std::endl;
@@ -549,14 +549,14 @@ void	Command::SendToUser(User *user, Server *server)
 		if (i == std::string::npos)
 			i = _param[0].size();
 		User	*recipient = server->GetUserByNickname(_param[0].substr(0, i));
-
-		if (recipient) // si le user appartient bien au server
-			SendOneMsg(recipient, RPL_PRIVMSG_CLIENT(user->GetNickname(), this->GetMsg()));
-		else // le user est inconnu
+		if (recipient) // if the user belongs to the server
+			SendOneMsg(recipient, RPL_PRIVMSG_CLIENT(user->GetNickname(), user->GetUsername(), this->_name, this->GetMsg()));
+		else // the user is unknown
 			SendOneMsg(user, ERR_NOSUCHNICK(_param[0].substr(0, i)));
 		_param[0].erase(0, i + 1);
 	}
 }
+
 
 void	Command::SendToChannel(User *user, Server *server)
 {
@@ -590,7 +590,14 @@ void	Command::PRIVMSG(User *user, Server *server)
 			SendOneMsg(user, ERR_NEEDMOREPARAMS(user->GetNickname(), this->_name));
 			return;
 		}
-		if (this->GetParameters()[0][0] == '#')
+		std::cout << this->_param[0] << std::endl;
+		if (this->_param[0].compare("$BOT") == 0)
+		{
+			std::string msgBot("Hi, I'm a bot");
+			std::string nameBot ("$BOT");
+			SendOneMsg(user, RPL_PRIVMSG_CLIENT(nameBot, nameBot, this->_name, msgBot));
+		}
+		else if (this->GetParameters()[0][0] == '#')
 			this->SendToChannel(user, server);
 		else
 			this->SendToUser(user, server);

@@ -72,7 +72,7 @@ bool	Server::HasChannel(std::string name)
 	std::map<std::string, Channel *>::iterator it;
 	it = this->_channels.find(name);
 
-	if (it->first == name)
+	if (it != this->_channels.end() && it->first == name)
 		return (true);
 	else
 		return (false);
@@ -125,8 +125,11 @@ void	Server::RemoveUser(User *toRemove)
 {
 	std::map<int, User *>::iterator it;
 	it = this->_users.find(toRemove->GetFd());
-	delete it->second;
-	this->_users.erase(toRemove->GetFd());
+    if (it != this->_users.end())
+    {
+        delete it->second;
+        this->_users.erase(it);
+    }
 }
 
 void	Server::AddUser()
@@ -226,13 +229,11 @@ void	Server::LaunchServer()
 
 	this->_clientEvent.events = EPOLLIN;
 	int numEvents;
-	std::string	currentCmd;
-	std::string	tmp = "";
 
 	while (!g_signal)
 	{
         numEvents = epoll_wait(this->_epollfd, this->_events, 1, -1); // traite evenement 1 par 1
-        if (numEvents == -1)
+		if (numEvents == -1)
 		{
             std::cerr << "Error : Unable to wait for events." << std::endl;
 			close(this->_socketServer);
@@ -244,16 +245,17 @@ void	Server::LaunchServer()
             if (this->_events[i].data.fd == this->_socketServer)
 			{
 				this->AddUser();
+				
             }
 			else
 			{
                 char packet[1024];
                 int bytesRead = recv(this->_events[i].data.fd, packet, sizeof(packet), 0);
-				// if (bytesRead < 0) // fermer proprement tout les fd + revoir epoll_ctl 3e argument
-                    // std::cerr <<  "Erreur lors de la réception de données du client." << std::endl;
-				if (bytesRead <= 0 || strncmp(packet, "QUIT", 4) == 0 )
+				std::cout << "packet = " << packet << std::endl;
+				if (bytesRead < 0) // fermer proprement tout les fd + revoir epoll_ctl 3e argument
+                    std::cerr <<  "Erreur lors de la réception de données du client." << std::endl;
+				if (bytesRead == 0 || strncmp(packet, "QUIT", 4) == 0 )
 				{
-					// supprimer le buffer du user qui a quitter
 					std::map<int, std::string>::iterator it = _buffer_map.find(this->_events[i].data.fd);
 					if (it->first == this->_events[i].data.fd)
 						_buffer_map.erase(it);
@@ -264,18 +266,17 @@ void	Server::LaunchServer()
 				}
 				else
 				{
-					std::string	input;
                     packet[bytesRead] = '\0';
-					// rajouter le buffer correcetment dans la map par rappor au user
-					_buffer_map.insert(std::pair<int, std::string>(this->_events[i].data.fd, ""));
-					std::map<int, std::string>::iterator it = _buffer_map.find(this->_events[i].data.fd);
-					if (it->first == this->_events[i].data.fd)
-						it->second += packet;
-					std::cout << "fd = " << this->_events[i].data.fd << " = [" << it->second << "]" << std::endl;
+					// _buffer_map.insert(std::pair<int, std::string>(this->_events[i].data.fd, ""));
+					// std::map<int, std::string>::iterator it = _buffer_map.find(this->_events[i].data.fd);
+					// if (it->first == this->_events[i].data.fd)
+					// 	it->second += packet;
+					std::string input;
+					std::string tmp = "";
 					if (tmp != "")
-						input = tmp + it->second;
+						input = tmp + packet;
 					else
-					 	input = it->second;
+					 	input = packet;
 					if (!input.empty() && input.find('\n') == std::string::npos)
 						tmp.assign(input);
                     else
@@ -290,14 +291,14 @@ void	Server::LaunchServer()
 							Command		cmd(output);
 
 							input.erase(0, pos + 1);
+							// std::cout << "input = " << input << std::endl;
 							cmd.ExecCommand(this->_events[i].data.fd, this);
-							_buffer_map.erase(it);
 							tmp = "";
 						}
-					}
-                }
-            }
-        }
+ 					}
+           		}
+        	}
+		}
     }
 
     close(this->_socketServer);
