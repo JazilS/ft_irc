@@ -48,22 +48,31 @@ void	User::SetServername(std::string servername)
 	return ;
 }
 
-void	User::SetRealname(std::vector<std::string> *paramCpy)
+void User::SetRealname(std::vector<std::string> *paramCpy)
 {
-	std::string	forname = paramCpy->at(3); // le real name est le 3eme arg de NICK
-	std::string realname = forname;
-	size_t		i = 4;
+    if (paramCpy->size() < 4) // Vérifier si le vecteur a au moins 4 éléments
+    {
+        // Gérer l'erreur ou retourner si nécessaire
+        return;
+    }
 
-	if (realname.at(1) == ':') // on supprime les deux points
-		realname.erase(0, 1);
-	while (i < paramCpy->size())
-	{
-		realname += paramCpy->at(i); // on ajoute tout les noms qui suivent
-		i++;						 	// car c'est possible d'y en avoir 1 ou plus de 2
-	}
-	this->_realname = realname;
+    std::string forname = paramCpy->at(3); // le real name est le 3eme arg de NICK
+    std::string realname = forname;
+    size_t i = 4;
+
+    if (realname.size() > 1 && realname.at(1) == ':') // Vérifier si la chaîne a au moins 2 caractères avant de vérifier le caractère à l'index 1
+    {
+        realname.erase(0, 1); // Supprimer les deux points
+    }
+
+    while (i < paramCpy->size())
+    {
+        realname += paramCpy->at(i); // Ajouter tous les noms qui suivent
+        i++;                        // Car il est possible d'en avoir 1 ou plus de 2
+    }
+
+    this->_realname = realname;
 }
-
 bool	User::IsAvailableNickname(std::string nickname, Server *server)
 {
 	std::map<int, User*>::iterator	it = server->GetUsers().begin();

@@ -432,20 +432,18 @@ void	Command::PASS(User *user, Server *server)
 {
 	if (user->GetAuth() == false)
 	{
-		if ((this->_param[0] != server->GetServerPassword()))
+		// std::cout << "size = " << this->_param.size() << std::endl;
+		if ((this->_param.size() != 0 && this->_param[0] == server->GetServerPassword() && this->_param.size() == 1))
 		{
-			// std::cout << "PASS PAS OK" << std::endl;
-			// std::cout << this->_param[0] << std::endl;
-			// std::cout <<  server->GetServerPassword() << std::endl;
+			std::cout << "PASS" << std::endl;
+			user->SetAuth(true);
+		}
+		else 
+		{
 			SendOneMsg(user, ERR_PASSWDMISMATCH(user->GetNickname()));
             epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
 			close(user->GetFd());
 			server->RemoveUser(user);
-		}
-		else 
-		{
-			std::cout << "PASS" << std::endl;
-			user->SetAuth(true);
 		}
 	}
 }
@@ -456,6 +454,20 @@ void	Command::NICK(User *user, Server *server)
 		return;
 	if (user->GetAuth() == true)
 	{
+		if (this->_param.size() < 1 || this->_param.size() > 1)
+		{
+			SendOneMsg(user, ERR_NEEDMOREPARAMS(user->GetNickname(), this->_name));
+			epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
+			close(user->GetFd());
+			return;
+		}
+		if (this->_param[0].find('#') != std::string::npos || this->_param[0].find('&') != std::string::npos || this->_param[0].find('+') != std::string::npos)
+		{
+			SendOneMsg(user, ERR_ERRONEUSNICKNAME(user->GetNickname()));
+			epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
+			close(user->GetFd());
+			return;
+		}
 		user->SetNickname(this->_param[0], server);
 		if (user->GetNickname().empty() == true)
 		{
@@ -473,11 +485,23 @@ void	Command::NICK(User *user, Server *server)
 
 void	Command::USER(User *user, Server *server)
 {
-	(void)server;
-
 	if (!user)
 		return ;
-	if (user->GetAuth() == true && this->_param.size() >= 4 && user->GetNickname().empty() == false)
+	// for (size_t i = 0; i < this->_param.size(); i++)
+	// {
+	// 	std::cout << "param[" << i << "] = " << this->_param[i] << std::endl;
+	// }
+	if (server->getNC() == true && user->GetAuth() == true && this->_param.size() == 4 && user->GetNickname().empty() == false && this->_param[1] == "0" && this->_param[2] == "*")
+	{
+		std::cout << "USER" << std::endl;
+		user->SetUsername(this->_param[0]);
+		user->SetHostname(this->_param[1]);
+		user->SetServername(this->_param[2]);
+		user->SetRealname(&_param);
+		user->SetValidity(true);
+		SendOneMsg(user, RPL_WELCOME(user->GetNickname()));
+	}
+	else if (user->GetAuth() == true && (this->_param.size() == 4  || this->_param.size() == 5 ) && user->GetNickname().empty() == false && server->getNC() == false)
 	{
 		std::cout << "USER" << std::endl;
 		user->SetUsername(this->_param[0]);
@@ -489,7 +513,7 @@ void	Command::USER(User *user, Server *server)
 	}
 	else
 	{
-		// std::cout << "USER PAS OK" << std::endl;
+		SendOneMsg(user, ERR_NEEDMOREPARAMS(user->GetNickname(), this->_name));
 		epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
 		close(user->GetFd());
 		server->RemoveUser(user);
@@ -550,8 +574,8 @@ void	Command::SendToUser(User *user, Server *server)
 			i = _param[0].size();
 		User	*recipient = server->GetUserByNickname(_param[0].substr(0, i));
 		std::string msg = this->GetMsg();
-		msg = msg.substr(1, msg.length() - 1);
-		std::cout << "msg: [" << this->GetMsg() << "]" << std::endl;
+		if (msg[0] == ':')
+			msg = msg.substr(1 , msg.length() - 2);
 		if (recipient) // if the user belongs to the server
 			SendOneMsg(recipient, RPL_PRIVMSG_CLIENT(user->GetNickname(), user->GetUsername(), recipient->GetNickname(), msg));
 		else // the user is unknown

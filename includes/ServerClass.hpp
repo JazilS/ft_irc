@@ -33,8 +33,10 @@ class Server
 	int									GetEpollFd();
 	epoll_event*						GetClientEvent();
 	std::map<int, User *>&				GetUsers();
+	bool getNC();
 
 	private:
+	bool								_nc;
 	std::string							_buffer;
 	int									_port;
 	std::string							_password;

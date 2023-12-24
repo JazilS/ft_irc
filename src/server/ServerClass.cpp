@@ -29,6 +29,10 @@ epoll_event*	Server::GetClientEvent()
 {
 	return (&(this->_clientEvent));
 }
+bool Server::getNC()
+{
+	return (this->_nc);
+}
 
 User*	Server::GetUserByFd(int fd)
 {
@@ -229,10 +233,12 @@ void	Server::LaunchServer()
 
 	this->_clientEvent.events = EPOLLIN;
 	int numEvents;
+	this->_nc = false;
+	std::string tmp = "";
 
 	while (!g_signal)
 	{
-        numEvents = epoll_wait(this->_epollfd, this->_events, 1, -1); // traite evenement 1 par 1
+		numEvents = epoll_wait(this->_epollfd, this->_events, 1, -1); // traite evenement 1 par 1
 		if (numEvents == -1)
 		{
             std::cerr << "Error : Unable to wait for events." << std::endl;
@@ -266,17 +272,17 @@ void	Server::LaunchServer()
 				}
 				else
 				{
+					std::string input;
                     packet[bytesRead] = '\0';
 					// _buffer_map.insert(std::pair<int, std::string>(this->_events[i].data.fd, ""));
 					// std::map<int, std::string>::iterator it = _buffer_map.find(this->_events[i].data.fd);
 					// if (it->first == this->_events[i].data.fd)
 					// 	it->second += packet;
-					std::string input;
-					std::string tmp = "";
 					if (tmp != "")
 						input = tmp + packet;
 					else
 					 	input = packet;
+					// std::cout << "input = " << input << std::endl;
 					if (!input.empty() && input.find('\n') == std::string::npos)
 						tmp.assign(input);
                     else
@@ -286,12 +292,15 @@ void	Server::LaunchServer()
 							int 		pos = input.find("\n");
 							std::string	output = input.substr(0, pos);
 
+
 							if (output.find("\r") != std::string::npos)
 								output.erase(output.length() - 1, 1);
+							else
+								this->_nc = true;
+
 							Command		cmd(output);
 
 							input.erase(0, pos + 1);
-							// std::cout << "input = " << input << std::endl;
 							cmd.ExecCommand(this->_events[i].data.fd, this);
 							tmp = "";
 						}
