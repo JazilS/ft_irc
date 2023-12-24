@@ -251,7 +251,7 @@ void	Server::LaunchServer()
 			{
                 char packet[1024];
                 int bytesRead = recv(this->_events[i].data.fd, packet, sizeof(packet), 0);
-				std::cout << "packet = " << packet << std::endl;
+				// std::cout << "packet = " << packet << std::endl;
 				if (bytesRead < 0) // fermer proprement tout les fd + revoir epoll_ctl 3e argument
                     std::cerr <<  "Erreur lors de la réception de données du client." << std::endl;
 				if (bytesRead == 0 || strncmp(packet, "QUIT", 4) == 0 )
