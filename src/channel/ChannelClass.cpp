@@ -12,7 +12,10 @@ Channel::~Channel()
 
 std::string	Channel::GetName()
 {
-	return (this->_name);
+	if (this->_name.empty())
+		return ("");
+	else
+		return (this->_name);
 }
 
 std::string	Channel::GetModes()

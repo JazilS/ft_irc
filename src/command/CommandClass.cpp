@@ -564,6 +564,7 @@ std::string	Command::GetTopic()
 
 void	Command::SendToUser(User *user, Server *server)
 {
+	// std::cout << "SendToUser" << std::endl;
 	size_t	i;
 
 	while (_param[0] != "")
@@ -587,6 +588,7 @@ void	Command::SendToUser(User *user, Server *server)
 
 void	Command::SendToChannel(User *user, Server *server)
 {
+	// std::cout << "SendToChannel" << std::endl;
 	this->_param[0].erase(0, 1); // on retire le '#' devant le nom du channel
 	Channel	*recipient = server->GetChannelByName(this->_param[0]);
 
@@ -610,6 +612,7 @@ void	Command::SendToChannel(User *user, Server *server)
 
 void	Command::PRIVMSG(User *user, Server *server)
 {
+	// std::cout << "PRIVMSG" << std::endl;
 	if (user->GetValidity() == true)
 	{
 		if (_param.size() < 2)

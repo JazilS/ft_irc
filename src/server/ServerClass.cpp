@@ -115,16 +115,16 @@ void	Server::AddUserToChannel(User *user, std::string channel)
 	return ;
 }
 
-void	Server::RemoveChannel(Channel *toRemove)
+void Server::RemoveChannel(Channel* toRemove)
 {
-	std::map<std::string, Channel *>::iterator it;
-	it = this->_channels.find(toRemove->GetName());
-	delete it->second;
-	this->_channels.erase(toRemove->GetName());
-
-	return ;
+    std::map<std::string, Channel*>::iterator it = _channels.find(toRemove->GetName());
+    
+    if (it != _channels.end())
+    {
+        delete toRemove;
+        _channels.erase(it);
+    }
 }
-
 void	Server::RemoveUser(User *toRemove)
 {
 	std::map<int, User *>::iterator it;

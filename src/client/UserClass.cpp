@@ -10,18 +10,21 @@ User::~User()
 	return ;
 }
 
-void	User::LeaveChannel(Channel *toLeave)
+void User::LeaveChannel(Channel* toLeave)
 {
-	std::vector<Channel *>::iterator it = this->_channels.begin();
+    std::vector<Channel*>::iterator it = _channels.begin();
 
-	while (it != this->_channels.end())
-	{
-		if (toLeave->GetName() == (*it)->GetName())
-			this->_channels.erase(it);
-		else
-			it++;
-	}
-	return ;
+    while (it != _channels.end())
+    {
+        if ((*it)->GetName() == toLeave->GetName())
+        {
+            it = _channels.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 void	User::JoinChannel(Channel *toJoin)
