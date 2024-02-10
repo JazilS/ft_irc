@@ -12,11 +12,16 @@ User::~User()
 
 void User::LeaveChannel(Channel* toLeave)
 {
+    if (toLeave == NULL) // Check if the Channel object is valid
+    {
+        return;
+    }
+
     std::vector<Channel*>::iterator it = _channels.begin();
 
     while (it != _channels.end())
     {
-        if ((*it)->GetName() == toLeave->GetName())
+        if ((*it) != NULL && (*it)->GetName() == toLeave->GetName()) // Check if the Channel object in the vector is valid
         {
             it = _channels.erase(it);
         }

@@ -283,15 +283,20 @@ bool	Channel::HasUser(User *user)
 
 void	Channel::RemoveUser(User *toRemove)
 {
-	User *user = NULL;
+    if (toRemove == NULL) // Check if the User object is valid
+    {
+        return;
+    }
 
-	for (std::vector<User *>::iterator it = this->_users.begin(); it != this->_users.end(); it++)
-	{
-		user = *it;
-		if (toRemove->GetNickname() == user->GetNickname())
-		{
-			this->_users.erase(it);
-			return ;
-		}
-	}
+    for (std::vector<User *>::iterator it = this->_users.begin(); it != this->_users.end(); )
+    {
+        if ((*it) != NULL && toRemove->GetNickname() == (*it)->GetNickname()) // Check if the User object in the vector is valid
+        {
+            it = this->_users.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }

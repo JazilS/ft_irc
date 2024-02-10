@@ -117,21 +117,24 @@ void	Server::AddUserToChannel(User *user, std::string channel)
 
 void Server::RemoveChannel(Channel* toRemove)
 {
+	if (toRemove == NULL)
+		return ;
+
     std::map<std::string, Channel*>::iterator it = _channels.find(toRemove->GetName());
-    
     if (it != _channels.end())
     {
-        delete toRemove;
         _channels.erase(it);
+        delete toRemove;
     }
 }
 void	Server::RemoveUser(User *toRemove)
 {
-	std::map<int, User *>::iterator it;
-	it = this->_users.find(toRemove->GetFd());
+    std::map<int, User *>::iterator it;
+    it = this->_users.find(toRemove->GetFd());
     if (it != this->_users.end())
     {
         delete it->second;
+        it->second = NULL;
         this->_users.erase(it);
     }
 }
@@ -274,10 +277,10 @@ void	Server::LaunchServer()
 				{
 					std::string input;
                     packet[bytesRead] = '\0';
-					// _buffer_map.insert(std::pair<int, std::string>(this->_events[i].data.fd, ""));
-					// std::map<int, std::string>::iterator it = _buffer_map.find(this->_events[i].data.fd);
-					// if (it->first == this->_events[i].data.fd)
-					// 	it->second += packet;
+					_buffer_map.insert(std::pair<int, std::string>(this->_events[i].data.fd, ""));
+					std::map<int, std::string>::iterator it = _buffer_map.find(this->_events[i].data.fd);
+					if (it->first == this->_events[i].data.fd)
+						it->second += packet;
 					if (tmp != "")
 						input = tmp + packet;
 					else

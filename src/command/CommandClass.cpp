@@ -136,6 +136,7 @@ void	Command::PART(User *user, Server *server)
 				break;
 			if (this->_param[i][0] == '#' && this->_param[i].size() > 1)
 			{
+				std::cout << "param[" << i << "] = " << this->_param[i] << std::endl;
 				chanStr.assign(this->_param[i]);
 				chanStr.erase(0, 1);
 				chan = server->GetChannelByName(chanStr);
@@ -145,10 +146,11 @@ void	Command::PART(User *user, Server *server)
 					SendOneMsg(user, ERR_NOTONCHANNEL(user->GetNickname(), chan->GetName()));
 				else
 				{
-					if (chan->GetUsers().size() == 1)
-						server->RemoveChannel(chan);
 					user->LeaveChannel(chan);
 					chan->RemoveUser(user);
+					std::cout << "chan->GetUsers().size() = " << chan->GetUsers().size() << std::endl;
+					// if (chan->GetUsers().size() == 0)
+					// 	server->RemoveChannel(chan);
 					SendOneMsg(user, PART_CHANEL(user->GetNickname(), user->GetUsername(), "PART", chan->GetName()));
 				}
 			}
