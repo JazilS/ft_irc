@@ -46,15 +46,15 @@ class Command
 	void						INVITE(User *user, Server *server);
 	void						PART(User *user, Server *server);
 	void						TOPIC(User *user, Server *server);
-	void						KICK(User *user, Server *server);
 	void						QUIT(User *user, Server *server);
-	
+	void						KICK(User *user, Server *server);
+
 	private:
 
 	std::string							_name;
 	std::vector<std::string>			_param;
 	std::stack<std::string>				_modeParams;
-	std::map<std::string, CmdFctPtr>	_commands;
+	std::map<std::string, CmdFctPtr >	_commands;
 };
 
 #endif

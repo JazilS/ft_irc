@@ -36,8 +36,10 @@
 // 318
 # define RPL_ENDOFWHOIS(nickname) (":localhost 318: " + nickname + " :End of /WHOIS\r\n")//used
             /* = = =    NICK    = = = */
+            
 // 401
 # define ERR_NOSUCHNICK(nickname) (":localhost 401: " + nickname + " There is no such nick :" + nickname + "\r\n") //USED
+
 // 433
 # define ERR_NICKNAMEINUSE(nickname) (":localhost 433 * " + nickname + " :Nickname is already in use\r\n")//used
 
@@ -93,7 +95,10 @@
 # define ERR_INVITEONLYCHAN(nickname, chanel) (":localhost 473 " +  nickname + " " + chanel + " :Cannot join channel (+i)\r\n") // used
 
             /* = = =    KICK     = = = */
-#define KICK_CLIENT(nickname, username, cmd, chanel, concerned_client_nickname) ((user_id(nickname, username, cmd)) + chanel + " " + concerned_client_nickname + " :\r\n") // used
+// #define KICK_CLIENT(nickname, username, cmd, chanel, concerned_client_nickname, message) ((user_id(nickname, username, cmd)) + chanel + " " + concerned_client_nickname + " " + message + " :\r\n") // used
+#define KICK_CLIENT(nickname, username, channel, target, message) (user_id(nickname, username, "KICK") + channel + " " + target + " : " + message + "\r\n")
+
+// #define RPL_KICK(nickname, channel, cible, reason) (':' + nickname + " KICK #" + channel + " " + cible + " :" + reason + "\r\n")
 
             /* = = =    TOPIC     = = = */
 // 331

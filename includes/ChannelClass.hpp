@@ -33,11 +33,24 @@ class Channel
 	void				SetTopic(std::string newTopic);
 	void				SetModes(char mode, std::stack<std::string> *modeParam, Server *server, Command *cmd, User *user);
 	void				SetModes(std::string modes);
-	void				UnsetModes(char mode, std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user);
+	// void				UnsetModes(char mode, std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user);
 	
 	bool				HasPass();
 	bool				IsPassCorrect(std::string password);
 	bool				IsLimitExceeded();
+
+	void				SetModeK(std::stack<std::string>* modeParams, Command* cmd, User* user);
+	void				SetModeO(std::stack<std::string>* modeParams, Server* server, Command* cmd, User* user);
+	void				SetModeL(std::stack<std::string>* modeParams, Command* cmd, User* user);
+	void				SetDefaultMode(char mode, Command* cmd, User* user);
+
+	void				UnsetModes(char mode, std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user);
+	bool				isValidMode(char mode);
+	void				unsetMode(char mode, User *user, Command *cmd);
+	void				unsetPassword();
+	void				unsetOperator(std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user);
+	void				unsetLimit();
+
 
 	private:
 

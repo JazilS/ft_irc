@@ -34,11 +34,16 @@ bool Server::getNC()
 	return (this->_nc);
 }
 
-User*	Server::GetUserByFd(int fd)
+User* Server::GetUserByFd(int fd)
 {
-	User *userFound;
-	userFound = this->_users.find(fd)->second;
-	return userFound;
+    std::map<int, User*>::iterator it = this->_users.find(fd);
+
+    if (it != this->_users.end())
+    {
+        return it->second;
+    }
+
+    return NULL;
 }
 
 std::string	Server::GetServerPassword( void )
@@ -247,31 +252,32 @@ void	Server::LaunchServer()
             std::cerr << "Error : Unable to wait for events." << std::endl;
 			close(this->_socketServer);
 			close(this->_epollfd);
-            return ;
-        }
-        for (int i = 0; i < numEvents; i++)
+			for (std::map<int, User*>::iterator it = this->_users.begin(); it != this->_users.end(); ++it)
+				close(it->first);
+			return ;
+		}
+		for (int i = 0; i < numEvents; i++)
 		{
-            if (this->_events[i].data.fd == this->_socketServer)
-			{
+			if (this->_events[i].data.fd == this->_socketServer)
 				this->AddUser();
-				
-            }
 			else
 			{
-                char packet[1024];
-                int bytesRead = recv(this->_events[i].data.fd, packet, sizeof(packet), 0);
+				char packet[1024];
+				int bytesRead = recv(this->_events[i].data.fd, packet, sizeof(packet), 0);
 				// std::cout << "packet = " << packet << std::endl;
 				if (bytesRead < 0) // fermer proprement tout les fd + revoir epoll_ctl 3e argument
-                    std::cerr <<  "Erreur lors de la réception de données du client." << std::endl;
+					std::cerr <<  "Erreur lors de la réception de données du client." << std::endl;
 				if (bytesRead == 0 || strncmp(packet, "QUIT", 4) == 0 )
 				{
 					std::map<int, std::string>::iterator it = _buffer_map.find(this->_events[i].data.fd);
 					if (it->first == this->_events[i].data.fd)
 						_buffer_map.erase(it);
-					// RemoveUser(GetUserByFd(this->_events[i].data.fd));
+					RemoveUser(GetUserByFd(this->_events[i].data.fd));
 					epoll_ctl(this->_epollfd, EPOLL_CTL_DEL, this->_events[i].data.fd, &this->_clientEvent);
 					close(this->_events[i].data.fd);
+					this->_nc = false;
                     std::cout << "Client disconnected." << std::endl;
+
 				}
 				else
 				{

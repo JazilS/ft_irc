@@ -153,16 +153,17 @@ void	Channel::SetTopic(std::string newTopic)
 bool	Channel::IsUserInvited(User *toCheck)
 {
 	if (this->_modes.find('i') == std::string::npos)
-	{
 		return (true);
-	}
 	else
 	{
 		for (std::vector<User *>::iterator it = this->_invited.begin(); it != this->_invited.end(); it++)
 		{
 			User *user = *it;
 			if (user->GetNickname() == toCheck->GetNickname())
+			{
+				_invited.erase(it);
 				return (true);
+			}
 		}
 		return (false);
 	}
@@ -179,124 +180,201 @@ void	Channel::SetModes(std::string modes)
 	return ;
 }
 
-void	Channel::SetModes(char mode, std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user)
+void Channel::SetModes(char mode, std::stack<std::string>* modeParams, Server* server, Command* cmd, User* user)
 {
-	std::string	availableModes = "itkol";
-	std::string	needParam = "kol";
-	
-	if (availableModes.find(mode) == std::string::npos)
-	{
-		cmd->SendOneMsg(user, ERR_UMODEUNKNOWNFLAG(user->GetNickname()));
-		return ;
-	}
-	if (needParam.find(mode) != std::string::npos && modeParams->top().empty() == true) // on ignore la commande si le param est manquant
-		return ; 
-	if (mode != 'o')
-		if (_modes.find(mode) == std::string::npos)
-		{
-			_modes += mode; // le mode est ajouté a la liste de mode du canal
-			cmd->SendGroupedMsg(_users, SET_CHANEL_MODE(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, mode));
-		}
-	if (mode == 'k')
-	{
-		_password = modeParams->top();
-		modeParams->pop(); // on pop les parametres une fois utilisés
-	}
-	else if (mode == 'o')
-	{
-		User	*newOper = server->GetUserByNickname(modeParams->top());
+    std::string availableModes = "itkol";
+    std::string needParam = "kol";
 
-		if (!IsOper(newOper))
-			AddOper(newOper);
-		cmd->SendGroupedMsg(_users, SET_NEWOPER(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, mode, modeParams->top()));
-		modeParams->pop();
-	}
-	else if (mode == 'l')
-	{
-		int	newLimit = atoi(modeParams->top().c_str());
+    if (availableModes.find(mode) == std::string::npos)
+    {
+        cmd->SendOneMsg(user, ERR_UMODEUNKNOWNFLAG(user->GetNickname()));
+        return;
+    }
 
-		modeParams->pop();
-		if (newLimit < 2 || newLimit > INT_MAX)
-		{
-			int i = _modes.find(mode);
-
-			_modes.erase(i, 1);
-			cmd->SendOneMsg(user, ERR_INVALIDLIMIT(user->GetNickname(), _name));
-		}
-		else
-			_limit = newLimit;
-	}
-}
-
-void	Channel::UnsetModes(char mode, std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user)
-{
-	std::string	availableModes = "itkol";
-	
-	if (availableModes.find(mode) == std::string::npos)
-	{
-		cmd->SendOneMsg(user, ERR_UMODEUNKNOWNFLAG(user->GetNickname()));
-		return ;
-	}
-	size_t	i = _modes.find(mode);
-
-	if (mode != 'o')
-	if (i != std::string::npos)
-	{
-		_modes.erase(i, 1);
-		cmd->SendGroupedMsg(_users, UNSET_CHANEL_MODE(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, mode));
-	}
-	if (mode == 'k')
-		_password = "";
-	else if (mode == 'o')
-	{
-		if (modeParams->top().empty())
-			return; // fail en silence
-		User	*toDel = server->GetUserByNickname(modeParams->top());
-
-		if (toDel->GetNickname() == _founder) // le founder ne peut pas perdre ses droits d'operateur
-		{
-			cmd->SendOneMsg(user, ERR_NOPRIVILEGES(user->GetNickname(), _name));
-			return;
-		}
-		DelOper(toDel);
-		cmd->SendGroupedMsg(_users, UNSET_OPER(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, mode, modeParams->top()));
-		modeParams->pop();
-	}
-	else if (mode == 'l')
-		_limit = INT_MAX;
-}
-
-bool	Channel::HasUser(User *user)
-{
-	std::vector<User *>::iterator it = this->_users.begin();
-	std::vector<User *>::iterator ite = this->_users.end(); 
-	
-	while (it != ite)
-	{
-		User *usertmp = *it;
-		if (usertmp->GetNickname() == user->GetNickname())
-			return (true);
-		it++;
-	}
-	return (false);
-}
-
-void	Channel::RemoveUser(User *toRemove)
-{
-    if (toRemove == NULL) // Check if the User object is valid
+    if (modeParams == NULL || modeParams->empty()) // Check if modeParams is valid and not empty
     {
         return;
     }
 
+    if (needParam.find(mode) != std::string::npos && modeParams->top().empty())
+    {
+        return;
+    }
+
+    switch (mode)
+    {
+        case 'k':
+            SetModeK(modeParams, cmd, user);
+            break;
+        case 'o':
+            SetModeO(modeParams, server, cmd, user);
+            break;
+        case 'l':
+            SetModeL(modeParams, cmd, user);
+            break;
+        default:
+            SetDefaultMode(mode, cmd, user);
+            break;
+    }
+}
+
+void Channel::SetModeK(std::stack<std::string>* modeParams, Command* cmd, User* user)
+{
+	(void)user;
+	(void)cmd;
+	_modes += 'k';
+    _password = modeParams->top();
+    modeParams->pop();
+    cmd->SendGroupedMsg(_users, SET_CHANEL_MODE(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, 'k'));
+}
+
+void Channel::SetModeO(std::stack<std::string>* modeParams, Server* server, Command* cmd, User* user)
+{
+    User* newOper = server->GetUserByNickname(modeParams->top());
+
+    if (newOper == NULL)
+        return;
+    if (!IsOper(newOper))
+        AddOper(newOper);
+    cmd->SendGroupedMsg(_users, SET_NEWOPER(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, 'o', modeParams->top()));
+    modeParams->pop();
+}
+
+void Channel::SetModeL(std::stack<std::string>* modeParams, Command* cmd, User* user)
+{
+    int newLimit = atoi(modeParams->top().c_str());
+
+    modeParams->pop();
+    if (newLimit < 1 || newLimit > INT_MAX)
+    {
+        cmd->SendOneMsg(user, ERR_INVALIDLIMIT(user->GetNickname(), _name));
+    }
+    else
+	{
+		_modes += 'l';
+        _limit = newLimit;
+		 cmd->SendGroupedMsg(_users, SET_CHANEL_MODE(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, "l"));
+	}
+}
+
+void Channel::SetDefaultMode(char mode, Command* cmd, User* user)
+{
+    if (_modes.find(mode) == std::string::npos)
+    {
+        _modes += mode;
+        cmd->SendGroupedMsg(_users, SET_CHANEL_MODE(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, mode));
+    }
+}
+
+void Channel::UnsetModes(char mode, std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user)
+{
+    if (!isValidMode(mode))
+    {
+        cmd->SendOneMsg(user, ERR_UMODEUNKNOWNFLAG(user->GetNickname()));
+        return;
+    }
+
+    if (mode != 'o')
+    {
+        unsetMode(mode, user, cmd);
+    }
+
+    if (mode == 'k')
+    {
+        unsetPassword();
+    }
+    else if (mode == 'o')
+    {
+        unsetOperator(modeParams, server, cmd, user);
+    }
+    else if (mode == 'l')
+    {
+        unsetLimit();
+    }
+}
+
+bool Channel::isValidMode(char mode)
+{
+    std::string availableModes = "itkol";
+    return availableModes.find(mode) != std::string::npos;
+}
+
+void Channel::unsetMode(char mode, User *user, Command *cmd)
+{
+    size_t modePosition = _modes.find(mode);
+    if (modePosition != std::string::npos)
+    {
+        _modes.erase(modePosition, 1);
+        cmd->SendGroupedMsg(_users, UNSET_CHANEL_MODE(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, mode));
+    }
+}
+
+void Channel::unsetPassword()
+{
+    _password = "";
+}
+
+void Channel::unsetOperator(std::stack<std::string> *modeParams, Server *server, Command *cmd, User *user)
+{
+    if (modeParams->top().empty())
+    {
+        return;
+    }
+
+    User *toDel = server->GetUserByNickname(modeParams->top());
+
+    if (toDel->GetNickname() == _founder)
+    {
+        cmd->SendOneMsg(user, ERR_NOPRIVILEGES(user->GetNickname(), _name));
+        return;
+    }
+
+    DelOper(toDel);
+    cmd->SendGroupedMsg(_users, UNSET_OPER(user->GetNickname(), user->GetUsername(), cmd->GetCmdName(), _name, 'o', modeParams->top()));
+    modeParams->pop();
+}
+
+void Channel::unsetLimit()
+{
+    _limit = INT_MAX;
+}
+
+bool Channel::HasUser(User* user)
+{
+    if (user == NULL)
+        return false;
+
+    std::vector<User*>::iterator it = this->_users.begin();
+    std::vector<User*>::iterator ite = this->_users.end(); 
+
+    while (it != ite)
+    {
+        User* usertmp = *it;
+
+        if (usertmp == NULL)
+        {
+            it++;
+            continue;
+        }
+
+        if (usertmp->GetNickname() == user->GetNickname())
+            return true;
+        it++;
+    }
+
+    return false;
+}
+
+void	Channel::RemoveUser(User *toRemove)
+{
+    if (toRemove == NULL)
+        return;
+
     for (std::vector<User *>::iterator it = this->_users.begin(); it != this->_users.end(); )
     {
-        if ((*it) != NULL && toRemove->GetNickname() == (*it)->GetNickname()) // Check if the User object in the vector is valid
-        {
+        if ((*it) != NULL && toRemove->GetNickname() == (*it)->GetNickname())
             it = this->_users.erase(it);
-        }
         else
-        {
             ++it;
-        }
     }
 }
