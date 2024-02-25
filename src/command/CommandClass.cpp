@@ -314,7 +314,7 @@ void	Command::JOIN(User *user, Server *server)
 						chan->AddUser(user); // ajout du user dans vector de classe channel
 						chan->AddOper(user); // ajout du user dans vector operator de classe channel
 						chan->SetFounder(user->GetNickname()); // set le user en tant que fondateur du channel
-						SendOneMsg(user, RPL_JOIN(user->GetNickname(), chan->GetName()));
+						SendOneMsg(user, RPL_JOIN(user->GetNickname(), user->GetUsername(), chan->GetName()));
 						if (chan->GetTopic().empty() == false)
 							SendOneMsg(user, RPL_TOPIC(user->GetNickname(), chan->GetName(), chan->GetTopic()));
 						std::string userNickname = "@" + user->GetNickname();
@@ -331,7 +331,7 @@ void	Command::JOIN(User *user, Server *server)
 								&& chan->IsUserInvited(user) == true && chan->IsLimitExceeded() == false) // password correct, user invited et pas d'exces d'user
 							{
 								server->AddUserToChannel(user, this->_param[i]); // ajouter user a map de channel dans classe server
-								SendOneMsg(user, RPL_JOIN(user->GetNickname(), chan->GetName()));
+								SendOneMsg(user, RPL_JOIN(user->GetNickname(), user->GetUsername(), chan->GetName()));
 								if (chan->GetTopic().empty() == false)
 									SendOneMsg(user, RPL_TOPIC(user->GetNickname(), chan->GetName(), chan->GetTopic()));
 								SendOneMsg(user, RPL_NAMREPLY(user->GetNickname(), chan->GetName(), chan->GetClientList()));
@@ -351,7 +351,7 @@ void	Command::JOIN(User *user, Server *server)
 							{
 								server->AddUserToChannel(user, this->_param[i]); // ajouter user a map de channel dans classe server
 								user->JoinChannel(chan);
-								SendOneMsg(user, RPL_JOIN(user->GetNickname(), chan->GetName()));
+								SendOneMsg(user, RPL_JOIN(user->GetNickname(), user->GetUsername(), chan->GetName()));
 								if (chan->GetTopic().empty() == false)
 									SendOneMsg(user, RPL_TOPIC(user->GetNickname(), chan->GetName(), chan->GetTopic()));
 								SendOneMsg(user, RPL_NAMREPLY(user->GetNickname(), chan->GetName(), chan->GetClientList()));
@@ -459,9 +459,9 @@ void	Command::PASS(User *user, Server *server)
 		else 
 		{
 			SendOneMsg(user, ERR_PASSWDMISMATCH(user->GetNickname()));
-			epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
-			close(user->GetFd());
-			server->RemoveUser(user);
+			// epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
+			// close(user->GetFd());
+			// server->RemoveUser(user);
 		}
 	}
 }
@@ -479,20 +479,27 @@ void	Command::NICK(User *user, Server *server)
 			close(user->GetFd());
 			return;
 		}
-		if (this->_param[0].find('#') != std::string::npos || this->_param[0].find('&') != std::string::npos || this->_param[0].find('+') != std::string::npos)
+		if (this->_param[0].find('#') != std::string::npos || this->_param[0].find('&') != std::string::npos || this->_param[0].find('+') != std::string::npos || 
+			this->_param[0].find(' ') != std::string::npos ||
+			this->_param[0].find(',') != std::string::npos ||
+			this->_param[0].find('*') != std::string::npos ||
+			this->_param[0].find('?') != std::string::npos ||
+			this->_param[0].find('@') != std::string::npos ||
+			this->_param[0].find('!') != std::string::npos)
 		{
 			SendOneMsg(user, ERR_ERRONEUSNICKNAME(user->GetNickname()));
 			epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
 			close(user->GetFd());
 			return;
 		}
-		user->SetNickname(this->_param[0], server);
-		if (user->GetNickname().empty() == true)
+		user->SetNickname(this->_param[0]);
+		if (user->IsAvailableNickname(user->GetNickname(), server) == false)
 		{
-			// std::cout << "NICK PAS OK" << std::endl;
-			SendOneMsg(user, ERR_NICKNAMEINUSE(_param[0]));
-			epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
-			close(user->GetFd());
+			// std::cout << "NICK = " << user->GetNickname() << std::endl;
+			SendOneMsg(user, ERR_NICKNAMEINUSE(user->GetNickname()));
+			user->SetNickname(this->_param[0] + "_");
+			// epoll_ctl(server->GetEpollFd(), EPOLL_CTL_DEL, user->GetFd(), server->GetClientEvent());
+			// close(user->GetFd());
 			// server->RemoveUser(user);
 		}
 		else
@@ -509,6 +516,10 @@ void	Command::USER(User *user, Server *server)
 	// {
 	// 	std::cout << "param[" << i << "] = " << this->_param[i] << std::endl;
 	// }
+	// std::cout << "user->GetAuth() = " << user->GetAuth() << std::endl;
+	// std::cout << "this->_param.size() = " << this->_param.size() << std::endl;
+	// std::cout << "user->GetNickname().empty() = " << user->GetNickname().empty() << std::endl;
+	// std::cout << "NC = " << server->getNC() << std::endl;
 	if (server->getNC() == true && user->GetAuth() == true && this->_param.size() == 4 && user->GetNickname().empty() == false && this->_param[1] == "0" && this->_param[2] == "*")
 	{
 		std::cout << "USER" << std::endl;

@@ -373,8 +373,15 @@ void	Channel::RemoveUser(User *toRemove)
     for (std::vector<User *>::iterator it = this->_users.begin(); it != this->_users.end(); )
     {
         if ((*it) != NULL && toRemove->GetNickname() == (*it)->GetNickname())
+        {
+            this->DelOper(*it);
             it = this->_users.erase(it);
+        }
         else
             ++it;
     }
+
+    std::vector<User *>::iterator it2 = this->_users.begin();
+    if (*it2 != NULL)
+        this->AddOper(*it2);
 }

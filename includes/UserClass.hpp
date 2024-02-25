@@ -35,7 +35,7 @@ class User
 	void					SetHostname(std::string hostname);
 	void					SetServername(std::string servername);
 	void					SetRealname(std::vector<std::string> *paramCpy);
-	void					SetNickname( std::string nickname, Server *server);
+	void					SetNickname( std::string nickname);
 	void					SetAuth(bool status);
 	void					SetValidity(bool status);
 

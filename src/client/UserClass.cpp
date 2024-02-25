@@ -81,31 +81,25 @@ void User::SetRealname(std::vector<std::string> *paramCpy)
 
     this->_realname = realname;
 }
+
 bool	User::IsAvailableNickname(std::string nickname, Server *server)
 {
 	std::map<int, User*>::iterator	it = server->GetUsers().begin();
 	std::map<int, User*>::iterator	ite = server->GetUsers().end();
+    int fd = this->GetFd();
 
 	while (it != ite)
 	{
-		if (nickname == it->second->GetNickname())
+		if (nickname == it->second->GetNickname() && fd != it->second->GetFd())
 			return (false);
 		it++;
 	}
 	return (true);
 }
 
-void		User::SetNickname(std::string nickname, Server *server)
+void	User::SetNickname(std::string nickname)
 {
-	if (IsAvailableNickname(nickname, server) == true)
-	{
-		this->_nickname = nickname;
-	}
-	else
-	{ 
-		this->_nickname = "";
-	}
-	return ;
+	this->_nickname = nickname;
 }
 
 void	User::SetFd(int fd)

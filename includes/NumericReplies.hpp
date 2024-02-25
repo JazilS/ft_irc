@@ -51,7 +51,8 @@
 # define RPL_PONG ":localhost PONG localhost :localhost\r\n" // used
 
             /* = = =    JOIN     = = = */
-# define RPL_JOIN(nickname, chanel) (':' + nickname + " JOIN #" + chanel + "\r\n") // used
+// # define RPL_JOIN(nickname, chanel) (':' + nickname + " JOIN #" + chanel + "\r\n") // used
+#define RPL_JOIN(nickname, username, channel) (CLIENT_ID(nickname, username, "JOIN") + ":#" + channel + "\r\n")
 
 # define PART_CHANEL(nickname, username, cmd, chanel) (user_id(nickname, username, cmd) + chanel + "\r\n") // used
 
